@@ -1,42 +1,56 @@
-"use client"
-import { useState } from "react"
-import "./App.css"
-import Header from "./components/Header"
-import VideoPreview from "./components/VideoPreview"
-import FileUpload from "./components/FileUpload"
-import ResultDisplay from "./components/ResultDisplay"
-import LoadingOverlay from "./components/LoadingOverlay"
-import AccidentDetailsPage from "./pages/AccidentDetailsPage"
-import LoadingAnimation from "./components/LoadingAnimation"
-import useVideoUpload from "./hooks/useVideoUpload"
+"use client";
+import { useState } from "react";
+import "./App.css";
+import Header from "./components/Header";
+import VideoPreview from "./components/VideoPreview";
+import FileUpload from "./components/FileUpload";
+import ResultDisplay from "./components/ResultDisplay";
+import LoadingOverlay from "./components/LoadingOverlay";
+import AccidentDetailsPage from "./pages/AccidentDetailsPage";
+import LoadingAnimation from "./components/LoadingAnimation";
+import useVideoUpload from "./hooks/useVideoUpload";
 
 function App() {
-  const { video, preview, result, loading, videoRef, handleFileChange, handleUpload } = useVideoUpload()
-  const [showDetailsPage, setShowDetailsPage] = useState(false)
-  const [showAnimation, setShowAnimation] = useState(false)
+  const {
+    video,
+    preview,
+    result,
+    loading,
+    videoRef,
+    handleFileChange,
+    handleUpload,
+    getProcessedAccidentData
+  } = useVideoUpload();
+  
+  const [showDetailsPage, setShowDetailsPage] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(false);
 
   const handleViewDetails = () => {
-    setShowAnimation(true)
+    setShowAnimation(true);
 
     // After 5 seconds, show the details page
     setTimeout(() => {
-      setShowAnimation(false)
-      setShowDetailsPage(true)
-    }, 4000)
-  }
+      setShowAnimation(false);
+      setShowDetailsPage(true);
+    }, 4000);
+  };
 
   const handleBackToHome = () => {
-    setShowDetailsPage(false)
-  }
+    setShowDetailsPage(false);
+  };
 
   // Show loading animation
   if (showAnimation) {
-    return <LoadingAnimation />
+    return <LoadingAnimation />;
   }
 
   // Show accident details page
   if (showDetailsPage) {
-    return <AccidentDetailsPage onBack={handleBackToHome} />
+    const processedAccidentData = getProcessedAccidentData();
+    return <AccidentDetailsPage 
+             onBack={handleBackToHome} 
+             accidentData={processedAccidentData} 
+           />;
   }
 
   // Show main app
@@ -67,7 +81,7 @@ function App() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

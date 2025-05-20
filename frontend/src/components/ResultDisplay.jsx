@@ -1,10 +1,10 @@
 function ResultDisplay({ result, loading, onViewDetails }) {
   if (loading || !result) {
-    return null
+    return null;
   }
 
-  const NoAccident = result.includes("No Accident Detected")
-  const isAccident= !NoAccident
+  const NoAccident = result.includes("No Accident Detected");
+  const isAccident = !NoAccident;
 
   return (
     <div className="mt-6 p-4 bg-cyan-900/30 rounded-lg animate-pop-in border border-cyan-500/20">
@@ -22,7 +22,7 @@ function ResultDisplay({ result, loading, onViewDetails }) {
         <p className="text-lg font-semibold text-green-400 animate-pulse">{result}</p>
       )}
     </div>
-  )
+  );
 }
 
-export default ResultDisplay
+export default ResultDisplay;
