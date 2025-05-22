@@ -1,25 +1,74 @@
 import bgimage from "../assets/bg2.jpg";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
-import accidentImage from "../assets/dummy.png"; // Changed this to match your import in AccidentDetailsPage
+import accidentImage from "../assets/dummy.png";
 
 function AccidentDetailsPage({ onBack, accidentData }) {
-  // If no accidentData is provided, use default dummy data
-  const [accidentDetails, setAccidentDetails] = useState(
-    accidentData || {
-      severity: "moderate",
+  // Process the backend response to separate vehicles and pedestrians
+  const processBackendData = (backendResponse) => {
+    if (!backendResponse || !backendResponse.entities) {
+      // Return default dummy data if no backend response
+      return {
+        severity: "moderate",
+        vehicles: {
+          count: 2,
+          types: ["Sedan", "SUV"],
+        },
+        pedestrians: 1,
+        licensePlate: "ABC-1234",
+        visibleLicensePlates: ["ABC-1234"],
+        timestamp: new Date().toLocaleString(),
+        accidentType: "Vehicle collision",
+        classification: "Accident",
+      };
+    }
+
+    // Separate vehicles and pedestrians from entities array
+    const vehicles = backendResponse.entities.filter(entity => 
+      entity.type && entity.type.toLowerCase() !== 'pedestrian' && entity.type.toLowerCase() !== 'pedastrian'
+    );
+    
+    const pedestrians = backendResponse.entities.filter(entity => 
+      entity.type && (entity.type.toLowerCase() === 'pedestrian' || entity.type.toLowerCase() === 'pedastrian')
+    );
+
+    // Extract vehicle types and license plates
+    const vehicleTypes = vehicles.map(vehicle => {
+      const type = vehicle.type.toLowerCase();
+      // Capitalize first letter for display
+      return type.charAt(0).toUpperCase() + type.slice(1);
+    });
+
+    // Extract all license plates (from vehicles only)
+    const licensePlates = vehicles
+      .filter(vehicle => vehicle.license_plate)
+      .map(vehicle => vehicle.license_plate);
+
+    return {
+      severity: backendResponse.severity || "moderate",
       vehicles: {
-        count: 2,
-        types: ["Sedan", "SUV"],
+        count: vehicles.length,
+        types: vehicleTypes.length > 0 ? vehicleTypes : ["Unknown"],
       },
-      pedestrians: 1,
-      licensePlate: "ABC-1234",
-      visibleLicensePlates: ["ABC-1234"],
+      pedestrians: pedestrians.length,
+      licensePlate: licensePlates[0] || "Not visible",
+      visibleLicensePlates: licensePlates.length > 0 ? licensePlates : [],
       timestamp: new Date().toLocaleString(),
       accidentType: "Vehicle collision",
-      classification: "Accident",
-    }
+      classification: backendResponse.result || "Accident Detected",
+    };
+  };
+
+  const [accidentDetails, setAccidentDetails] = useState(() => 
+    processBackendData(accidentData)
   );
+
+  // Update accident details when accidentData prop changes
+  useEffect(() => {
+    if (accidentData) {
+      setAccidentDetails(processBackendData(accidentData));
+    }
+  }, [accidentData]);
 
   // PDF generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -34,11 +83,11 @@ function AccidentDetailsPage({ onBack, accidentData }) {
       case "severe":
         return "red";
       default:
-        return "yellow"; // Default to moderate/yellow
+        return "yellow";
     }
   };
 
-  // Generate PDF functionality from Report.jsx
+  // Generate PDF functionality
   const generatePDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -46,7 +95,7 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     let y = 15;
 
     // ===== HEADER =====
-    doc.setTextColor(0, 51, 102); // Darker blue for better contrast
+    doc.setTextColor(0, 51, 102);
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
     doc.text("CrashAnalytix Accident Report", pageWidth / 2, y, {
@@ -54,14 +103,14 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     });
     y += 12;
 
-    doc.setDrawColor(180, 180, 180); // Slightly darker divider
+    doc.setDrawColor(180, 180, 180);
     doc.line(margin, y, pageWidth - margin, y);
     y += 8;
 
     // ===== REPORT SUMMARY =====
     const summaryBoxHeight = 22;
-    doc.setDrawColor(210); // Slightly darker border
-    doc.setFillColor(245, 245, 245); // Slightly darker background
+    doc.setDrawColor(210);
+    doc.setFillColor(245, 245, 245);
     doc.roundedRect(
       margin,
       y,
@@ -74,12 +123,12 @@ function AccidentDetailsPage({ onBack, accidentData }) {
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 51, 102); // Matching header color
+    doc.setTextColor(0, 51, 102);
     doc.text("REPORT SUMMARY", margin + 5, y + 7);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(70, 70, 70); // Darker gray for better readability
+    doc.setTextColor(70, 70, 70);
     doc.text("Timestamp: " + accidentDetails.timestamp, margin + 5, y + 13);
 
     y += summaryBoxHeight + 8;
@@ -87,27 +136,23 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     // ===== SEVERITY ASSESSMENT =====
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 51, 102); // Matching header color
+    doc.setTextColor(0, 51, 102);
     doc.text("SEVERITY ASSESSMENT", margin, y);
     y += 8;
 
-    // Set color based on severity
     const severityColors = {
-      minor: [0, 153, 51], // Green
-      moderate: [255, 153, 0], // Orange
-      severe: [204, 0, 0], // Red
+      minor: [0, 153, 51],
+      moderate: [255, 153, 0],
+      severe: [204, 0, 0],
     };
 
-    // Get color based on severity (default to moderate if not found)
     const textColor =
       severityColors[accidentDetails.severity.toLowerCase()] || severityColors.moderate;
 
-    // Display severity text instead of number
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...textColor);
 
-    // Capitalize first letter of severity
     const displaySeverity =
       accidentDetails.severity.charAt(0).toUpperCase() +
       accidentDetails.severity.slice(1);
@@ -118,10 +163,9 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     const riskBarWidth = pageWidth - 2 * margin;
     const riskBarHeight = 8;
 
-    // Enhanced gradient colors
-    doc.setFillColor(0, 153, 51); // Darker green (minor)
+    doc.setFillColor(0, 153, 51);
     doc.rect(margin, y, riskBarWidth * 0.3, riskBarHeight, "F");
-    doc.setFillColor(255, 204, 0); // Brighter yellow (moderate)
+    doc.setFillColor(255, 204, 0);
     doc.rect(
       margin + riskBarWidth * 0.3,
       y,
@@ -129,7 +173,7 @@ function AccidentDetailsPage({ onBack, accidentData }) {
       riskBarHeight,
       "F"
     );
-    doc.setFillColor(204, 0, 0); // Darker red (severe)
+    doc.setFillColor(204, 0, 0);
     doc.rect(
       margin + riskBarWidth * 0.6,
       y,
@@ -138,23 +182,22 @@ function AccidentDetailsPage({ onBack, accidentData }) {
       "F"
     );
 
-    // Position marker based on severity - FIXED POSITIONING
     let markerPosition;
     switch (accidentDetails.severity.toLowerCase()) {
       case "minor":
-        markerPosition = 0.15; // Left position (green zone)
+        markerPosition = 0.15;
         break;
       case "moderate":
-        markerPosition = 0.45; // Middle position (yellow zone)
+        markerPosition = 0.45;
         break;
       case "severe":
-        markerPosition = 0.8; // Right position (red zone)
+        markerPosition = 0.8;
         break;
       default:
-        markerPosition = 0.45; // Default to middle if unknown
+        markerPosition = 0.45;
     }
 
-    doc.setFillColor(51, 51, 51); // Darker marker
+    doc.setFillColor(51, 51, 51);
     doc.rect(
       margin + riskBarWidth * markerPosition - 1,
       y - 2,
@@ -197,7 +240,6 @@ function AccidentDetailsPage({ onBack, accidentData }) {
 
     y += 10;
 
-    // Table header with subtle background
     doc.setFillColor(235, 235, 235);
     doc.rect(margin, y, pageWidth - 2 * margin, 10, "F");
     doc.setFontSize(10);
@@ -207,17 +249,16 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     doc.text("Details", margin + 70, y + 7);
     y += 8;
 
-    // Table rows with alternating subtle shading
     const licensePlates =
       accidentDetails.visibleLicensePlates &&
       accidentDetails.visibleLicensePlates.length > 0
         ? accidentDetails.visibleLicensePlates.join(", ")
-        : accidentDetails.licensePlate;
+        : "Not visible";
 
     const incidentDetails = [
       {
         label: "Entities Involved",
-        value: `${accidentDetails.vehicles.count} Vehicles, ${accidentDetails.pedestrians} Pedestrian`,
+        value: `${accidentDetails.vehicles.count} Vehicle${accidentDetails.vehicles.count !== 1 ? 's' : ''}, ${accidentDetails.pedestrians} Pedestrian${accidentDetails.pedestrians !== 1 ? 's' : ''}`,
       },
       { label: "Accident Type", value: accidentDetails.accidentType },
       { label: "License Plates", value: licensePlates },
@@ -231,9 +272,9 @@ function AccidentDetailsPage({ onBack, accidentData }) {
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.setTextColor(...(index === 2 ? [204, 0, 0] : [70, 70, 70])); // Corrected
+      doc.setTextColor(...(index === 2 ? [204, 0, 0] : [70, 70, 70]));
       doc.text(item.label, margin + 5, y + 7);
-      doc.setTextColor(...(index === 2 ? [204, 0, 0] : [40, 40, 40])); // Corrected
+      doc.setTextColor(...(index === 2 ? [204, 0, 0] : [40, 40, 40]));
       doc.text(item.value, margin + 70, y + 7);
       y += 8;
     });
@@ -251,10 +292,9 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     const imgHeight = (imgWidth * 9) / 16;
     const imgX = (pageWidth - imgWidth) / 2;
 
-    // Enhanced image border
     const boxPadding = 4;
     doc.setDrawColor(180, 180, 180);
-    doc.setLineWidth(0.8); // Slightly thicker border
+    doc.setLineWidth(0.8);
     doc.rect(
       imgX - boxPadding,
       y - boxPadding,
@@ -293,7 +333,7 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     }, 300);
   };
 
-  // Determine if there are multiple license plates to display
+  // Render license plates
   const renderLicensePlates = () => {
     if (
       accidentDetails.visibleLicensePlates &&
@@ -385,7 +425,7 @@ function AccidentDetailsPage({ onBack, accidentData }) {
                   <p className="text-gray-700">
                     Status:{" "}
                     {accidentDetails.pedestrians > 0
-                      ? "Minor injuries"
+                      ? "Involved"
                       : "None involved"}
                   </p>
                 </div>
@@ -407,11 +447,12 @@ function AccidentDetailsPage({ onBack, accidentData }) {
                 footage.
               </p>
             </div>
+            
           </div>
 
           {/* Right column */}
           <div className="space-y-6">
-            {/* Severity Score - IMPROVED VERSION */}
+            {/* Severity Score */}
             <div className="bg-white/90 rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">
                 Severity Score
@@ -424,9 +465,8 @@ function AccidentDetailsPage({ onBack, accidentData }) {
                 <span className="text-red-600">Severe</span>
               </div>
 
-              {/* Severity Bar - with gradient background */}
+              {/* Severity Bar */}
               <div className="h-3 rounded-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 relative">
-                {/* Severity marker (circle indicator) - positioned based on severity */}
                 <div 
                   className={`absolute top-1/2 transform -translate-y-1/2 h-5 w-5 rounded-full border-2 border-white shadow-md ${
                     accidentDetails.severity.toLowerCase() === "minor"
@@ -467,7 +507,6 @@ function AccidentDetailsPage({ onBack, accidentData }) {
                     alt="Accident Snapshot"
                     className="w-full h-64 object-cover"
                   />
-                  {/* Bounding boxes */}
                 </div>
                 <p className="p-3 text-sm text-gray-600">
                   Frame captured at the moment of impact with object detection
@@ -475,8 +514,8 @@ function AccidentDetailsPage({ onBack, accidentData }) {
                 </p>
               </div>
             </div>
-            {/* Download Report Button */}
 
+            {/* Download Report Button */}
             <div className="bg-white/90 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center">
               <button
                 onClick={handleDownload}

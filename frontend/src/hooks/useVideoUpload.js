@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useRef } from "react";
 import axios from "axios";
 
@@ -50,11 +48,14 @@ function useVideoUpload() {
 
       // Store the complete accident data
       if (response.data.result === "Accident Detected") {
-        setAccidentData({
-          result: response.data.result,
-          severity: response.data.severity || "moderate",
-          entities: response.data.entities || [],
-        });
+        const accidentDataWithTimestamp = {
+          ...response.data,
+          timestamp: response.data.timestamp || new Date().toISOString(),
+          processingTime: timeTaken,
+        };
+
+        setAccidentData(accidentDataWithTimestamp);
+        console.log("Accident data saved to MongoDB via backend");
       }
     } catch (error) {
       console.error("❌ Error uploading video:", error);
@@ -63,7 +64,6 @@ function useVideoUpload() {
     }
   };
 
-  // Process accident data for the AccidentDetailsPage component
   // Process accident data for the AccidentDetailsPage component
   const getProcessedAccidentData = () => {
     if (!accidentData) return null;
@@ -95,12 +95,13 @@ function useVideoUpload() {
         types: vehicleTypes,
       },
       pedestrians: pedestrians.length,
-      licensePlate:
-        visibleLicensePlates.length > 0
-          ? visibleLicensePlates[0]
-          : "License number not visible",
+      licensePlate: visibleLicensePlates.length > 0
+        ? visibleLicensePlates[0]
+        : "License number not visible",
       visibleLicensePlates: visibleLicensePlates,
-      timestamp: new Date().toLocaleString(),
+      timestamp: accidentData.timestamp
+        ? new Date(accidentData.timestamp).toLocaleString()
+        : new Date().toLocaleString(),
       accidentType: "Vehicle collision", // Still a placeholder
       classification: "Accident",
     };

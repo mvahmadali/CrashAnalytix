@@ -8,8 +8,10 @@
     background: linear-gradient(90deg, #ff7e5f, #feb47b, #ff6a6a);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0px 0px 10px rgba(255, 122, 98, 0.8);
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.1); /* Subtle shadow for legibility */
     letter-spacing: 2px;
+    padding-bottom: 4px; /* Prevent clipping of descenders like 'y' */
+    line-height: 1.2;     /* Add breathing space for letters with tails */
 }
 
 /* Expanding Effect When Loading */
@@ -27,8 +29,7 @@
     animation: bounce 1.5s ease-in-out infinite;
 }
 
-
-/* Background Image */
+/* Default Background Image for all pages */
 body::after {
     content: '';
     position: fixed;
@@ -36,12 +37,33 @@ body::after {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('./assets/bg1.jpg'); /* Ensure the image is named correctly */
+    background-image: url('./assets/bg1.jpg'); /* Default background */
     background-size: cover;
     background-position: center;
     z-index: -1;
     opacity: 0.9;
     animation: backgroundPan 20s linear infinite;
+}
+
+/* Specific background for detect page */
+.detect-page::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('./assets/bg.jpg'); /* New background for detect page */
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    opacity: 0.9;
+    animation: backgroundPan 20s linear infinite;
+}
+
+/* Hide default background when detect page class is present */
+body.detect-page::after {
+    background-image: url('./assets/bg.jpg'); /* Override default background */
 }
 
 /* Background Animation */
@@ -143,7 +165,7 @@ button:active {
         height: 10rem;
     }
 }
-@import "tailwindcss";
+
 .glass-container-static {
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);

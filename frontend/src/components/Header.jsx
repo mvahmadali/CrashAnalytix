@@ -8,8 +8,8 @@ function Header() {
         <Lottie animationData={Animation} loop={true} />
       </div>
 
-      <h1 className="text-5xl font-extrabold accident-title">Accident Detction System</h1>
-      <p className="text-cyan-100 text-lg  font-medium">To begin with the analysis start off with uploading a video</p>
+      <h1 className="text-5xl font-extrabold accident-title">Crash Analytix System</h1>
+      <p className="text-cyan-100 text-lg  font-medium">To begin with the analysis start off by choosing an option</p>
     </>
   )
 }
