@@ -64,17 +64,20 @@ def predict():
     if accident_detected:
         response = {
             "result": "Accident Detected",
-            "severity": "Severe",
+            "severity": "Moderate",
             "entities": [
                 {
-                    "type": "Truck",
-                    "license_plate": "LPK-254"
+                    "type": "truck",
+                    "license_plate": "NWFP-893"
                 },
                 {
-                    "type": "Bus",
-                    "license_plate": "ONC-2234"
-                } 
-            ]
+                    "type": "car",
+                    "license_plate": "ABC-5678"
+                },
+                {
+                    "type": "pedestrian"
+                }
+                ]
         }
         
         # Save to MongoDB if accident detected
