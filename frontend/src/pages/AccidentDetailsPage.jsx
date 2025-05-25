@@ -6,101 +6,55 @@ import jsPDF from "jspdf"
 import accidentImage from "../assets/dummy.png"
 
 function AccidentDetailsPage({ onBack, accidentData }) {
-  // Process the backend response to separate vehicles and pedestrians
-  const processBackendData = (backendResponse) => {
-    console.log("Processing backend data:", backendResponse)
-
-    // If we're receiving data from useVideoUpload's getProcessedAccidentData
-    if (backendResponse && backendResponse.vehicles && backendResponse.severity) {
-      console.log("Using pre-processed data format")
-      // Data is already in the expected format, use it directly
-      return backendResponse
-    }
-
-    // If we're receiving raw API data
-    if (backendResponse && backendResponse.entities) {
-      console.log("Processing raw API data format")
-      // Separate vehicles and pedestrians from entities array
-      const vehicles = backendResponse.entities.filter(
-        (entity) =>
-          entity.type && entity.type.toLowerCase() !== "pedestrian" && entity.type.toLowerCase() !== "pedastrian",
-      )
-
-      const pedestrians = backendResponse.entities.filter(
-        (entity) =>
-          entity.type && (entity.type.toLowerCase() === "pedestrian" || entity.type.toLowerCase() === "pedastrian"),
-      )
-
-      // Extract vehicle types and license plates
-      const vehicleTypes = vehicles.map((vehicle) => {
-        const type = vehicle.type
-        // Capitalize first letter for display
-        return type.charAt(0).toUpperCase() + type.slice(1)
-      })
-
-      // Extract all visible license plates (from vehicles only)
-      const licensePlates = vehicles
-        .filter(
-          (vehicle) =>
-            vehicle.license_plate && vehicle.license_plate !== "undefined" && vehicle.license_plate.trim() !== "",
-        )
-        .map((vehicle) => vehicle.license_plate)
-
-      // Determine accident type based on entities
-      let accidentType = "Unknown"
-      if (vehicles.length > 1) {
-        accidentType = "Vehicle collision"
-      } else if (vehicles.length === 1 && pedestrians.length > 0) {
-        accidentType = "Vehicle-pedestrian accident"
-      } else if (vehicles.length === 1) {
-        accidentType = "Single vehicle accident"
-      } else if (pedestrians.length > 0) {
-        accidentType = "Pedestrian incident"
-      }
-
-      return {
-        severity: backendResponse.severity || "moderate",
-        vehicles: {
-          count: vehicles.length,
-          types: vehicleTypes.length > 0 ? vehicleTypes : ["Unknown"],
-        },
-        pedestrians: pedestrians.length,
-        licensePlate: licensePlates.length > 0 ? licensePlates[0] : "Not visible",
-        visibleLicensePlates: licensePlates,
-        timestamp: backendResponse.timestamp
-          ? new Date(backendResponse.timestamp).toLocaleString()
-          : new Date().toLocaleString(),
-        accidentType: accidentType,
-        classification: backendResponse.result || "Accident Detected",
-      }
-    }
-
-    // Fallback to default data if no valid data is provided
-    console.log("Using default data - no valid input received")
-    return {
+  const [accidentDetails, setAccidentDetails] = useState(
+    accidentData || {
       severity: "moderate",
-      vehicles: {
-        count: 2,
-        types: ["Sedan", "SUV"],
-      },
+      vehicles: { count: 2, types: ["Sedan", "SUV"] },
       pedestrians: 0,
       licensePlate: "ABC-1234",
       visibleLicensePlates: ["ABC-1234"],
       timestamp: new Date().toLocaleString(),
       accidentType: "Vehicle collision",
       classification: "Accident",
+    },
+  )
+  const [accidentImageUrl, setAccidentImageUrl] = useState(null)
+  const [isImageLoading, setIsImageLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const fetchAccidentImage = async (accidentId) => {
+    try {
+      setIsImageLoading(true)
+      // Assuming your backend serves images with the accident ID as filename
+      // Adjust the URL format based on your backend implementation
+      const imageUrl = `http://localhost:5000/collages/${accidentId}.jpg`
+
+      // Check if image exists by making a HEAD request
+      const response = await fetch(imageUrl, { method: "HEAD" })
+      if (response.ok) {
+        setAccidentImageUrl(imageUrl)
+      } else {
+        console.log("No accident image found, using placeholder")
+        setAccidentImageUrl(null)
+      }
+    } catch (error) {
+      console.error("Error fetching accident image:", error)
+      setAccidentImageUrl(null)
+    } finally {
+      setIsImageLoading(false)
     }
   }
 
-  const [accidentDetails, setAccidentDetails] = useState(() => processBackendData(accidentData))
-
-  // Update accident details when accidentData prop changes
   useEffect(() => {
     console.log("AccidentDetailsPage received data:", accidentData)
     if (accidentData) {
-      const processed = processBackendData(accidentData)
-      console.log("Processed accident data:", processed)
-      setAccidentDetails(processed)
+      console.log("Using provided accident data:", accidentData)
+      setAccidentDetails(accidentData)
+
+      // Fetch accident image if we have an ID
+      if (accidentData.filename) {
+        fetchAccidentImage(accidentData.filename)
+      }
     }
   }, [accidentData])
 
@@ -293,7 +247,9 @@ function AccidentDetailsPage({ onBack, accidentData }) {
     doc.setLineWidth(0.8)
     doc.rect(imgX - boxPadding, y - boxPadding, imgWidth + 2 * boxPadding, imgHeight + 2 * boxPadding)
 
-    doc.addImage(accidentImage, "JPG", imgX, y, imgWidth, imgHeight)
+    // Use actual accident image if available, otherwise use placeholder
+    const imageToUse = accidentImageUrl || accidentImage
+    doc.addImage(imageToUse, "JPG", imgX, y, imgWidth, imgHeight)
     y += imgHeight + boxPadding * 2 + 5
 
     // ===== FOOTER =====
@@ -339,6 +295,14 @@ function AccidentDetailsPage({ onBack, accidentData }) {
         </div>
       )
     }
+  }
+
+  const openModal = () => {
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
   }
 
   return (
@@ -462,11 +426,44 @@ function AccidentDetailsPage({ onBack, accidentData }) {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Accident Snapshot</h2>
               <div className="bg-gray-200 rounded-lg overflow-hidden">
                 <div className="relative">
-                  <img
-                    src={bgimage || "/placeholder.svg"}
-                    alt="Accident Snapshot"
-                    className="w-full h-64 object-cover"
-                  />
+                  {isImageLoading ? (
+                    <div className="w-full h-64 bg-gray-300 rounded-lg flex items-center justify-center">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Loading image...
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      onClick={openModal}
+                      src={accidentImageUrl || bgimage || "/placeholder.svg"}
+                      alt="Accident Snapshot"
+                      className="w-full h-64 object-cover cursor-pointer"
+                      onError={(e) => {
+                        console.log("Image failed to load, using fallback")
+                        e.target.src = bgimage || "/placeholder.svg"
+                      }}
+                    />
+                  )}
                 </div>
                 <p className="p-3 text-sm text-gray-600">
                   Frame captured at the moment of impact with object detection highlighting.
@@ -537,6 +534,51 @@ function AccidentDetailsPage({ onBack, accidentData }) {
       <footer className="bg-gray-800/80 text-white p-4 text-center">
         <p>© 2025 Accident Detection System | All Rights Reserved</p>
       </footer>
+
+      {/* Image Modal */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={closeModal}
+        >
+          <div
+            className="relative max-w-6xl max-h-full bg-white rounded-lg overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white hover:bg-opacity-70 transition-colors rounded-full p-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="p-4 bg-gray-800 text-white">
+              <h3 className="text-xl font-bold">Accident Snapshot - Full View</h3>
+             
+            </div>
+
+            <div className="relative bg-gray-100 flex items-center justify-center min-h-[400px]">
+              <img
+                src={accidentImageUrl || bgimage || "/placeholder.svg"}
+                alt="Accident Snapshot - Full View"
+                className="max-w-full max-h-[70vh] object-contain"
+                onError={(e) => {
+                  console.log("Image failed to load, using fallback")
+                  e.target.src = bgimage || "/placeholder.svg"
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

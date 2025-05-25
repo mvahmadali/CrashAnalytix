@@ -66,6 +66,28 @@ body.detect-page::after {
     background-image: url('./assets/bg.jpg'); /* Override default background */
 }
 
+
+.license-plate-page::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('./assets/bg2.jpg'); /* New background for detect page */
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    opacity: 0.9;
+    animation: backgroundPan 20s linear infinite;
+}
+
+/* Hide default background when detect page class is present */
+body.license-plate-page::after {
+    background-image: url('./assets/bg2.jpg'); /* Override default background */
+}
+
+
 /* Background Animation */
 @keyframes backgroundPan {
     0% { background-position: 0% 50%; }

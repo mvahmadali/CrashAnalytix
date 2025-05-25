@@ -104,6 +104,7 @@ function useVideoUpload() {
         : new Date().toLocaleString(),
       accidentType: "Vehicle collision", // Still a placeholder
       classification: "Accident",
+      filename: accidentData.filename || "Unknown"
     };
   };
 
@@ -121,3 +122,8 @@ function useVideoUpload() {
 }
 
 export default useVideoUpload;
+
+
+
+
+//  Final Response: {'result': 'Accident Detected', 'severity': 'Minor', 'entities': [{'type': 'truck', 'license_plate': 'NWFP-893'}, {'type': 'car', 'license_plate': ''}, {'type': 'pedestrian'}], 'filepath': './collages/collage.jpg', '_id': '4dc28d38-5a8a-4973-a55d-433395ba8a0d'}
