@@ -1,5 +1,6 @@
 import os
 import math
+import uuid
 from PIL import Image
 
 def create_collage_from_folder(folder_name='frames', output_subfolder='collages',
@@ -50,8 +51,11 @@ def create_collage_from_folder(folder_name='frames', output_subfolder='collages'
     # Make sure output folder exists
     os.makedirs(output_folder, exist_ok=True)
 
-    # Save the collage
-    collage_path = os.path.join(output_folder, 'accident_snapshot_collage.jpg')
+    # Generate unique filename using UUID
+    unique_id = str(uuid.uuid4())[:8]
+    collage_filename = f'accident_snapshot_collage_{unique_id}.jpg'
+    collage_path = os.path.join(output_folder, collage_filename)
+    
     collage_img.save(collage_path)
     print(f"✅ Collage saved at: {collage_path}")
 

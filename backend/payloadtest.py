@@ -42,9 +42,9 @@ def payload(accident_output, entities_result, severity_result, regnum_list):
         result["entities"].append(entity_obj)
 
     return result
-accident_output = [0, "filepath"]
-entities_result = [7, 2, 0]  # truck, car, pedestrian
-severity_result = 1  # Minor
-regnum_list = ["NWFP-893", ""]
+# accident_output = [0, "filepath"]
+# entities_result = [7, 2, 0]  # truck, car, pedestrian
+# severity_result = 1  # Minor
+# regnum_list = ["NWFP-893", ""]
 
-print(payload(accident_output, entities_result, severity_result, regnum_list))
+# print(payload(accident_output, entities_result, severity_result, regnum_list))
